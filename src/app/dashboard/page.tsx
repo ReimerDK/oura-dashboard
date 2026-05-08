@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { OuraClient } from "@/lib/oura/client";
 import { ScoreCard } from "@/components/ui/ScoreCard";
-import { TrendLineChart } from "@/components/charts/TrendLineChart";
+import { TabbedTrendCharts } from "@/components/charts/TabbedTrendCharts";
 import { today, daysAgo, formatDuration } from "@/lib/utils";
 import { getLocale, getTranslations, interpolate } from "@/lib/i18n";
 import { format, parseISO } from "date-fns";
@@ -129,47 +129,14 @@ export default async function DashboardOverview() {
         </ScoreCard>
       </div>
 
-      <div className="compare-grid lift-in-3">
-        <div className="chart-card" style={{ marginBottom: 0 }}>
-          <div className="chart-toolbar">
-            <div>
-              <h3 className="chart-title">{o.charts.readinessTitle}</h3>
-              <div className="chart-sub">{o.charts.readinessSub}</div>
-            </div>
-          </div>
-          <TrendLineChart data={chartData.readiness} color="var(--accent)" domain={[0, 100]} />
-        </div>
-        <div className="chart-card" style={{ marginBottom: 0 }}>
-          <div className="chart-toolbar">
-            <div>
-              <h3 className="chart-title">{o.charts.sleepTitle}</h3>
-              <div className="chart-sub">{o.charts.sleepSub}</div>
-            </div>
-          </div>
-          <TrendLineChart data={chartData.sleep} color="#3F5BAA" domain={[0, 100]} />
-        </div>
-      </div>
-
-      <div className="compare-grid lift-in-4">
-        <div className="chart-card" style={{ marginBottom: 0 }}>
-          <div className="chart-toolbar">
-            <div>
-              <h3 className="chart-title">{o.charts.activityTitle}</h3>
-              <div className="chart-sub">{o.charts.activitySub}</div>
-            </div>
-          </div>
-          <TrendLineChart data={chartData.activity} color="#B5704A" domain={[0, 100]} />
-        </div>
-        <div className="chart-card" style={{ marginBottom: 0 }}>
-          <div className="chart-toolbar">
-            <div>
-              <h3 className="chart-title">{o.charts.hrvTitle}</h3>
-              <div className="chart-sub">{o.charts.hrvSub}</div>
-            </div>
-          </div>
-          <TrendLineChart data={chartData.hrv} color="#7A5AB5" domain={[0, 100]} />
-        </div>
-      </div>
+      <TabbedTrendCharts
+        tabs={[
+          { key: "readiness", label: o.charts.readinessTitle, title: o.charts.readinessTitle, sub: o.charts.readinessSub, data: chartData.readiness, color: "var(--accent)" },
+          { key: "sleep",     label: o.charts.sleepTitle,     title: o.charts.sleepTitle,     sub: o.charts.sleepSub,     data: chartData.sleep,     color: "#3F5BAA" },
+          { key: "activity",  label: o.charts.activityTitle,  title: o.charts.activityTitle,  sub: o.charts.activitySub,  data: chartData.activity,  color: "#B5704A" },
+          { key: "hrv",       label: o.charts.hrvTitle,       title: o.charts.hrvTitle,       sub: o.charts.hrvSub,       data: chartData.hrv,       color: "#7A5AB5" },
+        ]}
+      />
 
       <div style={{ height: 48 }} />
     </div>
