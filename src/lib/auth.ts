@@ -38,6 +38,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
       },
       userinfo: "https://api.ouraring.com/v2/usercollection/personal_info",
+      issuer: "https://moi.ouraring.com/oauth/v2/ext/oauth-anonymous",
       checks: ["none"],
       clientId: process.env.OURA_CLIENT_ID,
       clientSecret: process.env.OURA_CLIENT_SECRET,
