@@ -1,11 +1,15 @@
 "use client";
 
+import { useId } from "react";
+import Link from "next/link";
+
 interface SparklineProps {
   data: number[];
   color: string;
 }
 
 function Sparkline({ data, color }: SparklineProps) {
+  const uid = useId().replace(/:/g, "");
   if (data.length < 2) return null;
   const w = 200, h = 50;
   const min = Math.min(...data) - 1;
@@ -28,16 +32,17 @@ function Sparkline({ data, color }: SparklineProps) {
 
   const area = `${d} L${w},${h} L0,${h} Z`;
   const lx = w, ly = sy(data[data.length - 1]);
+  const gradId = `sg-${uid}`;
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: "100%", height: "100%", display: "block" }}>
       <defs>
-        <linearGradient id={`sg-${color.replace(/[^a-z0-9]/gi, "")}`} x1="0" x2="0" y1="0" y2="1">
+        <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.18" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={area} fill={`url(#sg-${color.replace(/[^a-z0-9]/gi, "")})`} />
+      <path d={area} fill={`url(#${gradId})`} />
       <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx={lx} cy={ly} r="3" fill={color} />
     </svg>
@@ -53,6 +58,8 @@ interface ScoreCardProps {
   sparkData?: number[];
   delta?: number;
   unit?: string;
+  dateRange?: string;
+  href?: string;
   children?: React.ReactNode;
 }
 
@@ -65,12 +72,14 @@ export function ScoreCard({
   sparkData,
   delta,
   unit = "",
+  dateRange,
+  href,
   children,
 }: ScoreCardProps) {
   const deltaClass = delta === undefined ? "" : delta > 0 ? "up" : delta < 0 ? "down" : "";
 
-  return (
-    <div className="embr-card">
+  const inner = (
+    <div className={`embr-card${href ? " embr-card--link" : ""}`}>
       <div className="card-head">
         <span className="card-name">{title}</span>
         {delta !== undefined && (
@@ -93,8 +102,18 @@ export function ScoreCard({
       {sparkData && sparkData.length > 1 && (
         <div className="card-spark">
           <Sparkline data={sparkData} color={color} />
+          {dateRange && (
+            <div style={{ fontFamily: "var(--mono)", fontSize: 9, color: "var(--ink-3)", textAlign: "right", marginTop: 3, letterSpacing: "0.03em" }}>
+              {dateRange}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
+
+  if (href) {
+    return <Link href={href} style={{ textDecoration: "none", display: "block" }}>{inner}</Link>;
+  }
+  return inner;
 }

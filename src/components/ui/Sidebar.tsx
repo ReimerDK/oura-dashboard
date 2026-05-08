@@ -3,15 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { LocaleSwitcher } from "./LocaleSwitcher";
+import type { Locale } from "@/lib/i18n";
+import type { Translations } from "@/lib/i18n/locales/da";
 
-const navItems = [
-  { href: "/dashboard", label: "Overblik", icon: "⊕" },
-  { href: "/dashboard/sleep", label: "Søvn", icon: "◑" },
-  { href: "/dashboard/activity", label: "Aktivitet", icon: "◈" },
-  { href: "/dashboard/readiness", label: "Parathed", icon: "◎" },
-  { href: "/dashboard/heart-rate", label: "Puls & HRV", icon: "♡" },
-  { href: "/dashboard/compare", label: "Sammenlign", icon: "⇄" },
-];
+interface SidebarProps {
+  t: Translations["nav"];
+  locale: Locale;
+}
 
 export function Topbar() {
   return (
@@ -24,12 +23,22 @@ export function Topbar() {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ t, locale }: SidebarProps) {
   const pathname = usePathname();
+
+  const navItems = [
+    { href: "/dashboard", label: t.overview, icon: "⊕" },
+    { href: "/dashboard/sleep", label: t.sleep, icon: "◑" },
+    { href: "/dashboard/activity", label: t.activity, icon: "◈" },
+    { href: "/dashboard/readiness", label: t.readiness, icon: "◎" },
+    { href: "/dashboard/heart-rate", label: t.heartRate, icon: "♡" },
+    { href: "/dashboard/compare", label: t.compare, icon: "⇄" },
+    { href: "/dashboard/settings", label: t.settings, icon: "◦" },
+  ];
 
   return (
     <aside className="dash-side">
-      <h5>Navigation</h5>
+      <h5>{t.navigation}</h5>
       <nav>
         {navItems.map((item) => {
           const active =
@@ -44,8 +53,11 @@ export function Sidebar() {
         })}
       </nav>
       <div style={{ marginTop: "auto", paddingTop: 24, borderTop: "0.5px solid var(--line)" }}>
+        <div style={{ marginBottom: 12 }}>
+          <LocaleSwitcher current={locale} />
+        </div>
         <button className="logout-btn" onClick={() => signOut({ callbackUrl: "/" })}>
-          Log ud
+          {t.logout}
         </button>
       </div>
     </aside>

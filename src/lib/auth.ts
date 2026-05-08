@@ -31,13 +31,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       userinfo: "https://api.ouraring.com/v2/usercollection/personal_info",
       issuer: "https://moi.ouraring.com/oauth/v2/ext/oauth-anonymous",
+      // Oura's OAuth server does not return a state param, so standard state/PKCE checks fail
       checks: ["none"],
       clientId: process.env.OURA_CLIENT_ID,
       clientSecret: process.env.OURA_CLIENT_SECRET,
       profile(profile) {
+        const localPart = profile.email?.split("@")[0] ?? "";
+        const displayName = localPart.charAt(0).toUpperCase() + localPart.slice(1);
         return {
           id: profile.id,
-          name: profile.email,
+          name: displayName || profile.email,
           email: profile.email,
           image: null,
         };

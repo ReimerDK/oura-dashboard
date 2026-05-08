@@ -3,15 +3,11 @@ import { OuraClient } from "@/lib/oura/client";
 import { ScoreCard } from "@/components/ui/ScoreCard";
 import { TrendLineChart } from "@/components/charts/TrendLineChart";
 import { today, daysAgo, formatDuration } from "@/lib/utils";
+import { getLocale, getTranslations, interpolate } from "@/lib/i18n";
 import { format, parseISO } from "date-fns";
+import { da as dateFnsDa, enGB } from "date-fns/locale";
 
-function timeGreeting() {
-  const h = new Date().getHours();
-  if (h < 5) return "Stadig oppe";
-  if (h < 12) return "God morgen";
-  if (h < 18) return "God eftermiddag";
-  return "God aften";
-}
+const dateFnsLocales = { da: dateFnsDa, en: enGB };
 
 function delta7(scores: (number | undefined)[]) {
   const vals = scores.filter((v): v is number => v !== undefined);
@@ -25,6 +21,9 @@ function delta7(scores: (number | undefined)[]) {
 export default async function DashboardOverview() {
   const session = await auth();
   if (!session?.user?.id) return null;
+
+  const [locale, t] = await Promise.all([getLocale(), getTranslations()]);
+  const dfLocale = dateFnsLocales[locale];
 
   const client = new OuraClient(session.user.id);
   const start = daysAgo(29);
@@ -58,50 +57,68 @@ export default async function DashboardOverview() {
       .map((r) => ({ day: format(parseISO(r.day), "dd/MM"), value: r.contributors!.hrv_balance! })),
   };
 
-  const firstName = session.user.name?.split(" ")[0] ?? "der";
+  const firstName = session.user.name?.split(" ")[0] ?? (locale === "da" ? "der" : "there");
+
+  function sparkRange(days: { day: string }[]): string | undefined {
+    if (days.length < 2) return undefined;
+    return `${format(parseISO(days[0].day), "d. MMM", { locale: dfLocale })} – ${format(parseISO(days.at(-1)!.day), "d. MMM yyyy", { locale: dfLocale })}`;
+  }
+
+  const o = t.overview;
+  const greetings = o.greetings;
+  const h = new Date().getHours();
+  const greeting = h < 5 ? greetings.lateNight : h < 12 ? greetings.morning : h < 18 ? greetings.afternoon : greetings.evening;
 
   return (
     <div>
       <div className="dash-head lift-in">
         <div>
-          <div className="date-label">{format(new Date(), "EEEE d. MMMM yyyy").toUpperCase()}</div>
+          <div className="date-label">{format(new Date(), "EEEE d. MMMM yyyy", { locale: dfLocale }).toUpperCase()}</div>
           <h1 className="greeting">
-            {timeGreeting()}, <em>{firstName}.</em>
+            {greeting}, <em>{firstName}.</em>
           </h1>
         </div>
       </div>
 
       <div className="metric-grid lift-in-2">
         <ScoreCard
-          title="Parathed"
+          title={o.cards.readiness}
           score={latestReadiness?.score}
-          poetry="kroppens parathed til at tage dagen i møde."
+          poetry={o.cards.readinessPoetry}
           color="var(--accent)"
           sparkData={readinessScores.filter((v): v is number => v !== undefined)}
           delta={delta7(readinessScores)}
+          dateRange={sparkRange(readiness)}
+          href="/dashboard/readiness"
         />
         <ScoreCard
-          title="Søvn"
+          title={o.cards.sleep}
           score={latestSleep?.score}
-          poetry={mainSleep ? formatDuration(mainSleep.total_sleep_duration ?? 0) : "kvaliteten af nattens søvn."}
+          poetry={mainSleep ? formatDuration(mainSleep.total_sleep_duration ?? 0) : t.sleep.cards.avgScorePoetry}
           color="#3F5BAA"
           sparkData={sleepScores.filter((v): v is number => v !== undefined)}
           delta={delta7(sleepScores)}
+          dateRange={sparkRange(sleep)}
+          href="/dashboard/sleep"
         />
         <ScoreCard
-          title="Aktivitet"
+          title={o.cards.activity}
           score={latestActivity?.score}
-          poetry={latestActivity?.steps ? `${latestActivity.steps.toLocaleString("da")} skridt i dag.` : "bevægelse vævet ind i timerne."}
+          poetry={latestActivity?.steps ? interpolate(o.cards.stepsToday, { n: latestActivity.steps.toLocaleString(t.numberLocale) }) : o.cards.activityPoetry}
           color="#B5704A"
           sparkData={activityScores.filter((v): v is number => v !== undefined)}
           delta={delta7(activityScores)}
+          dateRange={sparkRange(activity)}
+          href="/dashboard/activity"
         />
         <ScoreCard
-          title="SpO2"
-          poetry="iltmætning i blodet."
+          title={o.cards.spo2}
+          poetry={o.cards.spo2Poetry}
           color="#7A5AB5"
           unit="%"
           sparkData={spo2.map((s) => s.spo2_percentage?.average).filter((v): v is number => v !== undefined)}
+          dateRange={sparkRange(spo2)}
+          href="/dashboard/heart-rate"
         >
           {latestSpO2?.spo2_percentage?.average && (
             <div className="card-value">
@@ -112,15 +129,23 @@ export default async function DashboardOverview() {
         </ScoreCard>
       </div>
 
-      <div className="chart-card lift-in-3">
-        <div className="chart-toolbar">
-          <div>
-            <h3 className="chart-title">Parathed & Søvn</h3>
-            <div className="chart-sub">Seneste 30 dage</div>
+      <div className="compare-grid lift-in-3">
+        <div className="chart-card" style={{ marginBottom: 0 }}>
+          <div className="chart-toolbar">
+            <div>
+              <h3 className="chart-title">{o.charts.readinessTitle}</h3>
+              <div className="chart-sub">{o.charts.readinessSub}</div>
+            </div>
           </div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           <TrendLineChart data={chartData.readiness} color="var(--accent)" domain={[0, 100]} />
+        </div>
+        <div className="chart-card" style={{ marginBottom: 0 }}>
+          <div className="chart-toolbar">
+            <div>
+              <h3 className="chart-title">{o.charts.sleepTitle}</h3>
+              <div className="chart-sub">{o.charts.sleepSub}</div>
+            </div>
+          </div>
           <TrendLineChart data={chartData.sleep} color="#3F5BAA" domain={[0, 100]} />
         </div>
       </div>
@@ -129,8 +154,8 @@ export default async function DashboardOverview() {
         <div className="chart-card" style={{ marginBottom: 0 }}>
           <div className="chart-toolbar">
             <div>
-              <h3 className="chart-title">Aktivitet</h3>
-              <div className="chart-sub">Score, 30 dage</div>
+              <h3 className="chart-title">{o.charts.activityTitle}</h3>
+              <div className="chart-sub">{o.charts.activitySub}</div>
             </div>
           </div>
           <TrendLineChart data={chartData.activity} color="#B5704A" domain={[0, 100]} />
@@ -138,8 +163,8 @@ export default async function DashboardOverview() {
         <div className="chart-card" style={{ marginBottom: 0 }}>
           <div className="chart-toolbar">
             <div>
-              <h3 className="chart-title">HRV Balance</h3>
-              <div className="chart-sub">Bidragsværdi, 30 dage</div>
+              <h3 className="chart-title">{o.charts.hrvTitle}</h3>
+              <div className="chart-sub">{o.charts.hrvSub}</div>
             </div>
           </div>
           <TrendLineChart data={chartData.hrv} color="#7A5AB5" domain={[0, 100]} />

@@ -41,7 +41,10 @@ export function TrendLineChart({ data, color = "var(--accent)", unit = "", domai
   const yMax = domain ? domain[1] : Math.max(...values) + 2;
 
   const sx = (i: number) => (i / (data.length - 1)) * innerW;
-  const sy = (v: number) => innerH - ((v - yMin) / (yMax - yMin)) * innerH;
+  const sy = (v: number) => {
+    const clamped = Math.min(yMax, Math.max(yMin, v));
+    return innerH - ((clamped - yMin) / (yMax - yMin)) * innerH;
+  };
 
   // Build smooth path
   let path = "";
@@ -82,9 +85,16 @@ export function TrendLineChart({ data, color = "var(--accent)", unit = "", domai
   const cursorX = hover !== null ? sx(hover) : null;
   const cursorY = hover !== null ? sy(data[hover].value) : null;
 
+  const clipId = `clip-${color.replace(/[^a-z0-9]/gi, "")}${innerW}`;
+
   return (
     <div className="chart-shell" ref={wrapRef} onMouseMove={handleMove} onMouseLeave={() => setHover(null)}>
       <svg viewBox={`0 0 ${w} ${height}`} style={{ height }}>
+        <defs>
+          <clipPath id={clipId}>
+            <rect x={0} y={0} width={innerW} height={innerH} />
+          </clipPath>
+        </defs>
         {/* Grid lines */}
         <g className="grid" transform={`translate(${padL},${padT})`}>
           {yTicks.map(({ y }, i) => (
@@ -104,7 +114,7 @@ export function TrendLineChart({ data, color = "var(--accent)", unit = "", domai
           ))}
         </g>
         {/* Area + line */}
-        <g transform={`translate(${padL},${padT})`}>
+        <g transform={`translate(${padL},${padT})`} clipPath={`url(#${clipId})`}>
           <path d={area} fill={color} className="series-area" />
           <path d={path} stroke={color} className="series-path" />
           {referenceValue !== undefined && (
