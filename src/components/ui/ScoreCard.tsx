@@ -1,23 +1,100 @@
 "use client";
 
-import { scoreColor } from "@/lib/utils";
+interface SparklineProps {
+  data: number[];
+  color: string;
+}
+
+function Sparkline({ data, color }: SparklineProps) {
+  if (data.length < 2) return null;
+  const w = 200, h = 50;
+  const min = Math.min(...data) - 1;
+  const max = Math.max(...data) + 1;
+  const sy = (v: number) => h - ((v - min) / (max - min)) * h;
+  const sx = (i: number) => (i / (data.length - 1)) * w;
+
+  let d = "";
+  for (let i = 0; i < data.length; i++) {
+    const x = sx(i), y = sy(data[i]);
+    if (i === 0) {
+      d += `M${x.toFixed(1)},${y.toFixed(1)}`;
+    } else {
+      const px = sx(i - 1), py = sy(data[i - 1]);
+      const cx1 = px + (x - px) * 0.5;
+      const cx2 = x - (x - px) * 0.5;
+      d += ` C${cx1.toFixed(1)},${py.toFixed(1)} ${cx2.toFixed(1)},${y.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`;
+    }
+  }
+
+  const area = `${d} L${w},${h} L0,${h} Z`;
+  const lx = w, ly = sy(data[data.length - 1]);
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: "100%", height: "100%", display: "block" }}>
+      <defs>
+        <linearGradient id={`sg-${color.replace(/[^a-z0-9]/gi, "")}`} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#sg-${color.replace(/[^a-z0-9]/gi, "")})`} />
+      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lx} cy={ly} r="3" fill={color} />
+    </svg>
+  );
+}
 
 interface ScoreCardProps {
   title: string;
   score?: number;
   subtitle?: string;
+  poetry?: string;
+  color?: string;
+  sparkData?: number[];
+  delta?: number;
+  unit?: string;
   children?: React.ReactNode;
 }
 
-export function ScoreCard({ title, score, subtitle, children }: ScoreCardProps) {
+export function ScoreCard({
+  title,
+  score,
+  subtitle,
+  poetry,
+  color = "var(--accent)",
+  sparkData,
+  delta,
+  unit = "",
+  children,
+}: ScoreCardProps) {
+  const deltaClass = delta === undefined ? "" : delta > 0 ? "up" : delta < 0 ? "down" : "";
+
   return (
-    <div className="bg-gray-900 rounded-2xl p-5 flex flex-col gap-2">
-      <p className="text-sm text-gray-400 font-medium uppercase tracking-wide">{title}</p>
+    <div className="embr-card">
+      <div className="card-head">
+        <span className="card-name">{title}</span>
+        {delta !== undefined && (
+          <span className={`card-delta ${deltaClass}`}>
+            {delta > 0 ? "▲ " : delta < 0 ? "▼ " : "— "}
+            {Math.abs(delta)}{unit}
+          </span>
+        )}
+      </div>
       {score !== undefined && (
-        <p className={`text-4xl font-bold tabular-nums ${scoreColor(score)}`}>{score}</p>
+        <div className="card-value">
+          {score}
+          {unit && <span className="card-unit">{unit}</span>}
+        </div>
       )}
-      {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
       {children}
+      {(subtitle || poetry) && (
+        <div className="card-sub">&ldquo;{poetry ?? subtitle}&rdquo;</div>
+      )}
+      {sparkData && sparkData.length > 1 && (
+        <div className="card-spark">
+          <Sparkline data={sparkData} color={color} />
+        </div>
+      )}
     </div>
   );
 }
