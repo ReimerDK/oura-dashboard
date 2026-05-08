@@ -21,9 +21,14 @@ export function ActivityBarChart({ data, unit = "", color }: Props) {
         <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} unit={unit} />
         <Tooltip
-          contentStyle={{ background: "#111827", border: "1px solid #374151", borderRadius: 8 }}
-          labelStyle={{ color: "#e5e7eb" }}
-          formatter={(v) => [`${v}${unit}`]}
+          contentStyle={{ background: "#111827", border: "none", borderRadius: 8, padding: "8px 12px" }}
+          labelStyle={{ color: "#e5e7eb", fontWeight: 500 }}
+          labelFormatter={(_label, payload) => {
+            const val = payload?.[0]?.value;
+            return val !== undefined ? `${Number(val).toLocaleString()}${unit}` : _label;
+          }}
+          formatter={() => [null, ""]}
+          itemStyle={{ display: "none" }}
         />
         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
           {data.map((entry, i) => (
