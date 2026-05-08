@@ -46,17 +46,6 @@ export function getPriorPeriod(preset: PeriodPreset): { start: string; end: stri
   }
 }
 
-export function scoreColor(score: number): string {
-  if (score >= 85) return "text-emerald-400";
-  if (score >= 70) return "text-yellow-400";
-  return "text-red-400";
-}
-
-export function scoreBg(score: number): string {
-  if (score >= 85) return "bg-emerald-500";
-  if (score >= 70) return "bg-yellow-500";
-  return "bg-red-500";
-}
 
 export function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);

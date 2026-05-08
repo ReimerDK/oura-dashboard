@@ -5,10 +5,13 @@ import { TrendLineChart } from "@/components/charts/TrendLineChart";
 import { ScoreCard } from "@/components/ui/ScoreCard";
 import { PeriodSelector } from "@/components/ui/PeriodSelector";
 import { getPeriod, type PeriodPreset } from "@/lib/utils";
+import { useT } from "@/lib/i18n/TranslationsContext";
 import { format, parseISO } from "date-fns";
 import type { DailyReadiness, DailySpO2 } from "@/lib/oura/types";
 
 export default function HeartRatePage() {
+  const t = useT();
+  const h = t.heartRate;
   const [preset, setPreset] = useState<PeriodPreset>("30days");
   const [readiness, setReadiness] = useState<DailyReadiness[]>([]);
   const [spo2, setSpO2] = useState<DailySpO2[]>([]);
@@ -22,8 +25,12 @@ export default function HeartRatePage() {
       .then((d) => {
         setReadiness(Array.isArray(d.readiness) ? d.readiness : []);
         setSpO2(Array.isArray(d.spo2) ? d.spo2 : []);
-        setLoading(false);
-      });
+      })
+      .catch(() => {
+        setReadiness([]);
+        setSpO2([]);
+      })
+      .finally(() => setLoading(false));
   }, [preset]);
 
   const avgHrv = readiness.length
@@ -37,28 +44,28 @@ export default function HeartRatePage() {
     <div>
       <div className="dash-head lift-in">
         <div>
-          <div className="date-label">Puls & HRV</div>
-          <h1 className="greeting">Hjertets <em>rytme.</em></h1>
+          <div className="date-label">{h.dateLabel}</div>
+          <h1 className="greeting">{h.heading} <em>{h.headingEm}</em></h1>
         </div>
-        <PeriodSelector value={preset} onChange={setPreset} />
+        <PeriodSelector value={preset} onChange={setPreset} t={t.period} />
       </div>
 
       {loading ? (
-        <div style={{ color: "var(--ink-3)", fontFamily: "var(--mono)", fontSize: 13, padding: "40px 0" }}>Henter data…</div>
+        <div style={{ color: "var(--ink-3)", fontFamily: "var(--mono)", fontSize: 13, padding: "40px 0" }}>{t.common.loading}</div>
       ) : (
         <>
           <div className="metric-grid lift-in-2" style={{ gridTemplateColumns: "repeat(2, 1fr)" }}>
             <ScoreCard
-              title="Gns. HRV Balance"
-              poetry="den rytmiske give-og-tag mellem hjerteslag."
+              title={h.cards.avgHrv}
+              poetry={h.cards.hrvPoetry}
               color="#7A5AB5"
               sparkData={readiness.map((r) => r.contributors?.hrv_balance ?? 0).filter(Boolean)}
             >
               {avgHrv > 0 && <div className="card-value">{avgHrv}<span className="card-unit">ms</span></div>}
             </ScoreCard>
             <ScoreCard
-              title="Gns. SpO2"
-              poetry="iltmætning i blodet."
+              title={h.cards.avgSpo2}
+              poetry={h.cards.spo2Poetry}
               color="#06b6d4"
               sparkData={spo2.map((s) => s.spo2_percentage?.average ?? 0).filter(Boolean)}
             >
@@ -69,8 +76,8 @@ export default function HeartRatePage() {
           <div className="chart-card lift-in-3">
             <div className="chart-toolbar">
               <div>
-                <h3 className="chart-title">HRV Balance</h3>
-                <div className="chart-sub">Bidragsværdi over valgt periode</div>
+                <h3 className="chart-title">{h.charts.hrvTitle}</h3>
+                <div className="chart-sub">{h.charts.hrvSub}</div>
               </div>
             </div>
             <TrendLineChart
@@ -86,8 +93,8 @@ export default function HeartRatePage() {
             <div className="chart-card" style={{ marginBottom: 0 }}>
               <div className="chart-toolbar">
                 <div>
-                  <h3 className="chart-title">Hvilepuls (bidrag)</h3>
-                  <div className="chart-sub">Bidragsværdi fra hvilepuls</div>
+                  <h3 className="chart-title">{h.charts.restingHrTitle}</h3>
+                  <div className="chart-sub">{h.charts.restingHrSub}</div>
                 </div>
               </div>
               <TrendLineChart
@@ -101,8 +108,8 @@ export default function HeartRatePage() {
             <div className="chart-card" style={{ marginBottom: 0 }}>
               <div className="chart-toolbar">
                 <div>
-                  <h3 className="chart-title">Iltmætning SpO2</h3>
-                  <div className="chart-sub">Procent, dagligt gennemsnit</div>
+                  <h3 className="chart-title">{h.charts.spo2Title}</h3>
+                  <div className="chart-sub">{h.charts.spo2Sub}</div>
                 </div>
               </div>
               <TrendLineChart

@@ -6,10 +6,13 @@ import { ReadinessRadarChart } from "@/components/charts/ReadinessRadarChart";
 import { ScoreCard } from "@/components/ui/ScoreCard";
 import { PeriodSelector } from "@/components/ui/PeriodSelector";
 import { getPeriod, type PeriodPreset } from "@/lib/utils";
+import { useT } from "@/lib/i18n/TranslationsContext";
 import { format, parseISO } from "date-fns";
 import type { DailyReadiness } from "@/lib/oura/types";
 
 export default function ReadinessPage() {
+  const t = useT();
+  const r = t.readiness;
   const [preset, setPreset] = useState<PeriodPreset>("30days");
   const [data, setData] = useState<DailyReadiness[]>([]);
   const [selectedDay, setSelectedDay] = useState<DailyReadiness | null>(null);
@@ -19,36 +22,41 @@ export default function ReadinessPage() {
     const { start, end } = getPeriod(preset);
     setLoading(true);
     fetch(`/api/oura/readiness?start=${start}&end=${end}`)
-      .then((r) => r.json())
+      .then((res) => res.json())
       .then((d) => {
         const arr: DailyReadiness[] = Array.isArray(d) ? d : [];
         setData(arr);
         setSelectedDay(arr.at(-1) ?? null);
-        setLoading(false);
-      });
+      })
+      .catch(() => {
+        setData([]);
+        setSelectedDay(null);
+      })
+      .finally(() => setLoading(false));
   }, [preset]);
 
-  const avgScore = data.length ? Math.round(data.reduce((s, d) => s + (d.score ?? 0), 0) / data.filter((d) => d.score).length) : 0;
+  const scoredData = data.filter((d) => d.score);
+  const avgScore = scoredData.length ? Math.round(scoredData.reduce((s, d) => s + (d.score ?? 0), 0) / scoredData.length) : 0;
 
   return (
     <div>
       <div className="dash-head lift-in">
         <div>
-          <div className="date-label">Parathed</div>
-          <h1 className="greeting">Kroppens <em>kapacitet.</em></h1>
+          <div className="date-label">{r.dateLabel}</div>
+          <h1 className="greeting">{r.heading} <em>{r.headingEm}</em></h1>
         </div>
-        <PeriodSelector value={preset} onChange={setPreset} />
+        <PeriodSelector value={preset} onChange={setPreset} t={t.period} />
       </div>
 
       {loading ? (
-        <div style={{ color: "var(--ink-3)", fontFamily: "var(--mono)", fontSize: 13, padding: "40px 0" }}>Henter data…</div>
+        <div style={{ color: "var(--ink-3)", fontFamily: "var(--mono)", fontSize: 13, padding: "40px 0" }}>{t.common.loading}</div>
       ) : (
         <>
           <div className="metric-grid lift-in-2" style={{ gridTemplateColumns: "1fr" }}>
             <ScoreCard
-              title="Gns. paratheds-score"
+              title={r.cards.avgScore}
               score={avgScore || undefined}
-              poetry="kroppens parathed til at tage dagen i møde."
+              poetry={r.cards.avgScorePoetry}
               color="var(--accent)"
               sparkData={data.map((d) => d.score ?? 0).filter(Boolean)}
             />
@@ -57,8 +65,12 @@ export default function ReadinessPage() {
           <div className="chart-card lift-in-3">
             <div className="chart-toolbar">
               <div>
-                <h3 className="chart-title">Paratheds-score</h3>
-                <div className="chart-sub">Score over valgt periode</div>
+                <h3 className="chart-title">{r.charts.scoreTitle}</h3>
+                <div className="chart-sub">
+                  {data.length >= 2
+                    ? `${format(parseISO(data[0].day), "d. MMM")} – ${format(parseISO(data[data.length - 1].day), "d. MMM yyyy")}`
+                    : t.common.scoreOver}
+                </div>
               </div>
             </div>
             <TrendLineChart
@@ -72,9 +84,9 @@ export default function ReadinessPage() {
             <div className="chart-card" style={{ marginBottom: 0 }}>
               <div className="chart-toolbar">
                 <div>
-                  <h3 className="chart-title">Bidragende faktorer</h3>
+                  <h3 className="chart-title">{r.charts.factorsTitle}</h3>
                   <div className="chart-sub" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    Vælg dag:{" "}
+                    {r.charts.selectDay}{" "}
                     <select
                       style={{
                         background: "var(--bg-2)", color: "var(--ink)", border: "0.5px solid var(--line)",
@@ -95,8 +107,8 @@ export default function ReadinessPage() {
             <div className="chart-card" style={{ marginBottom: 0 }}>
               <div className="chart-toolbar">
                 <div>
-                  <h3 className="chart-title">Kropstemperatur</h3>
-                  <div className="chart-sub">Afvigelse fra din baseline</div>
+                  <h3 className="chart-title">{r.charts.tempTitle}</h3>
+                  <div className="chart-sub">{r.charts.tempSub}</div>
                 </div>
               </div>
               <TrendLineChart

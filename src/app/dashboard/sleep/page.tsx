@@ -6,10 +6,14 @@ import { TrendLineChart } from "@/components/charts/TrendLineChart";
 import { ScoreCard } from "@/components/ui/ScoreCard";
 import { PeriodSelector } from "@/components/ui/PeriodSelector";
 import { getPeriod, formatDuration, type PeriodPreset } from "@/lib/utils";
+import { useT } from "@/lib/i18n/TranslationsContext";
+import { interpolate } from "@/lib/i18n/interpolate";
 import { format, parseISO } from "date-fns";
 import type { DailySleep, SleepPeriod } from "@/lib/oura/types";
 
 export default function SleepPage() {
+  const t = useT();
+  const s = t.sleep;
   const [preset, setPreset] = useState<PeriodPreset>("30days");
   const [dailySleep, setDailySleep] = useState<DailySleep[]>([]);
   const [periods, setPeriods] = useState<SleepPeriod[]>([]);
@@ -24,46 +28,52 @@ export default function SleepPage() {
     ]).then(([daily, sleepPeriods]) => {
       setDailySleep(Array.isArray(daily) ? daily : []);
       setPeriods(Array.isArray(sleepPeriods) ? sleepPeriods : []);
+    }).catch(() => {
+      setDailySleep([]);
+      setPeriods([]);
+    }).finally(() => {
       setLoading(false);
     });
   }, [preset]);
 
-  const mainPeriods = periods.filter((s) => s.type === "long_sleep" || !s.type);
-  const avgScore = dailySleep.length ? Math.round(dailySleep.reduce((s, d) => s + (d.score ?? 0), 0) / dailySleep.filter((d) => d.score).length) : 0;
-  const avgDuration = mainPeriods.length ? Math.round(mainPeriods.reduce((s, p) => s + (p.total_sleep_duration ?? 0), 0) / mainPeriods.length) : 0;
-  const avgEfficiency = mainPeriods.length ? Math.round(mainPeriods.reduce((s, p) => s + (p.efficiency ?? 0), 0) / mainPeriods.filter((p) => p.efficiency).length) : 0;
+  const mainPeriods = periods.filter((p) => p.type === "long_sleep" || !p.type);
+  const scoredSleep = dailySleep.filter((d) => d.score);
+  const avgScore = scoredSleep.length ? Math.round(scoredSleep.reduce((a, d) => a + (d.score ?? 0), 0) / scoredSleep.length) : 0;
+  const avgDuration = mainPeriods.length ? Math.round(mainPeriods.reduce((a, p) => a + (p.total_sleep_duration ?? 0), 0) / mainPeriods.length) : 0;
+  const efficiencyPeriods = mainPeriods.filter((p) => p.efficiency);
+  const avgEfficiency = efficiencyPeriods.length ? Math.round(efficiencyPeriods.reduce((a, p) => a + (p.efficiency ?? 0), 0) / efficiencyPeriods.length) : 0;
 
   return (
     <div>
       <div className="dash-head lift-in">
         <div>
-          <div className="date-label">Søvn</div>
-          <h1 className="greeting">Nattens <em>hvile.</em></h1>
+          <div className="date-label">{s.dateLabel}</div>
+          <h1 className="greeting">{s.heading} <em>{s.headingEm}</em></h1>
         </div>
-        <PeriodSelector value={preset} onChange={setPreset} />
+        <PeriodSelector value={preset} onChange={setPreset} t={t.period} />
       </div>
 
       {loading ? (
-        <div style={{ color: "var(--ink-3)", fontFamily: "var(--mono)", fontSize: 13, padding: "40px 0" }}>Henter data…</div>
+        <div style={{ color: "var(--ink-3)", fontFamily: "var(--mono)", fontSize: 13, padding: "40px 0" }}>{t.common.loading}</div>
       ) : (
         <>
           <div className="metric-grid lift-in-2" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
             <ScoreCard
-              title="Gns. søvnscore"
+              title={s.cards.avgScore}
               score={avgScore || undefined}
-              poetry="kvaliteten af nattens søvn, samlet."
+              poetry={s.cards.avgScorePoetry}
               color="#3F5BAA"
-              sparkData={dailySleep.map((s) => s.score ?? 0).filter(Boolean)}
+              sparkData={dailySleep.map((d) => d.score ?? 0).filter(Boolean)}
             />
             <ScoreCard
-              title="Gns. søvnlængde"
+              title={s.cards.avgDuration}
               poetry={formatDuration(avgDuration)}
               color="#3F5BAA"
               sparkData={mainPeriods.map((p) => (p.total_sleep_duration ?? 0) / 3600).filter(Boolean)}
             />
             <ScoreCard
-              title="Gns. effektivitet"
-              poetry={avgEfficiency ? `${avgEfficiency}% søvneffektivitet` : "ikke nok data."}
+              title={s.cards.avgEfficiency}
+              poetry={avgEfficiency ? interpolate(s.cards.efficiencyPoetry, { n: avgEfficiency }) : t.common.notEnoughData}
               color="#06b6d4"
               sparkData={mainPeriods.map((p) => p.efficiency ?? 0).filter(Boolean)}
             >
@@ -76,12 +86,12 @@ export default function SleepPage() {
           <div className="chart-card lift-in-3">
             <div className="chart-toolbar">
               <div>
-                <h3 className="chart-title">Søvnscore</h3>
-                <div className="chart-sub">Score over valgt periode</div>
+                <h3 className="chart-title">{s.charts.scoreTitle}</h3>
+                <div className="chart-sub">{s.charts.scoreSub}</div>
               </div>
             </div>
             <TrendLineChart
-              data={dailySleep.map((s) => ({ day: format(parseISO(s.day), "dd/MM"), value: s.score ?? 0 }))}
+              data={dailySleep.map((d) => ({ day: format(parseISO(d.day), "dd/MM"), value: d.score ?? 0 }))}
               color="#3F5BAA"
               domain={[0, 100]}
             />
@@ -90,8 +100,8 @@ export default function SleepPage() {
           <div className="chart-card lift-in-4">
             <div className="chart-toolbar">
               <div>
-                <h3 className="chart-title">Søvnstadier per nat</h3>
-                <div className="chart-sub">Fordeling af dyb, REM og let søvn</div>
+                <h3 className="chart-title">{s.charts.stagesTitle}</h3>
+                <div className="chart-sub">{s.charts.stagesSub}</div>
               </div>
             </div>
             <SleepStagesChart data={mainPeriods} />
@@ -101,12 +111,12 @@ export default function SleepPage() {
             <div className="chart-card" style={{ marginBottom: 0 }}>
               <div className="chart-toolbar">
                 <div>
-                  <h3 className="chart-title">Søvneffektivitet</h3>
-                  <div className="chart-sub">Procent af tid i sengen</div>
+                  <h3 className="chart-title">{s.charts.efficiencyTitle}</h3>
+                  <div className="chart-sub">{s.charts.efficiencySub}</div>
                 </div>
               </div>
               <TrendLineChart
-                data={mainPeriods.map((s) => ({ day: format(parseISO(s.day), "dd/MM"), value: s.efficiency ?? 0 }))}
+                data={mainPeriods.map((p) => ({ day: format(parseISO(p.day), "dd/MM"), value: p.efficiency ?? 0 }))}
                 color="#06b6d4"
                 domain={[50, 100]}
                 unit="%"
@@ -115,12 +125,12 @@ export default function SleepPage() {
             <div className="chart-card" style={{ marginBottom: 0 }}>
               <div className="chart-toolbar">
                 <div>
-                  <h3 className="chart-title">HRV under søvn</h3>
-                  <div className="chart-sub">Gennemsnit i ms</div>
+                  <h3 className="chart-title">{s.charts.hrvTitle}</h3>
+                  <div className="chart-sub">{s.charts.hrvSub}</div>
                 </div>
               </div>
               <TrendLineChart
-                data={mainPeriods.map((s) => ({ day: format(parseISO(s.day), "dd/MM"), value: s.average_hrv ?? 0 }))}
+                data={mainPeriods.map((p) => ({ day: format(parseISO(p.day), "dd/MM"), value: p.average_hrv ?? 0 }))}
                 color="#7A5AB5"
               />
             </div>

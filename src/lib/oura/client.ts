@@ -13,6 +13,7 @@ import type {
 const BASE_URL = "https://api.ouraring.com/v2/usercollection";
 
 const cache = new Map<string, { data: unknown; expiresAt: number }>();
+const refreshLocks = new Map<string, Promise<string>>();
 
 function getCached<T>(key: string): T | null {
   const entry = cache.get(key);
@@ -41,7 +42,6 @@ export class OuraClient {
 
     if (!account?.access_token) throw new Error("No Oura token for user");
 
-    // Proactive refresh: if expires within 5 minutes
     const fiveMinutes = 5 * 60;
     if (account.expires_at && account.expires_at < Date.now() / 1000 + fiveMinutes) {
       return this.refreshToken(account.refresh_token!);
@@ -52,35 +52,48 @@ export class OuraClient {
   }
 
   private async refreshToken(refreshToken: string): Promise<string> {
-    const res = await fetch("https://api.ouraring.com/oauth/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: refreshToken,
-        client_id: process.env.OURA_CLIENT_ID!,
-        client_secret: process.env.OURA_CLIENT_SECRET!,
-      }),
-    });
+    // Deduplicate concurrent refresh calls for the same user
+    const existing = refreshLocks.get(this.userId);
+    if (existing) return existing;
 
-    if (!res.ok) throw new Error("Failed to refresh Oura token");
+    const promise = (async () => {
+      const res = await fetch("https://api.ouraring.com/oauth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+          client_id: process.env.OURA_CLIENT_ID!,
+          client_secret: process.env.OURA_CLIENT_SECRET!,
+        }),
+      });
 
-    const data = await res.json();
+      if (!res.ok) throw new Error("Failed to refresh Oura token");
 
-    await prisma.account.updateMany({
-      where: { userId: this.userId, provider: "oura" },
-      data: {
-        access_token: data.access_token,
-        refresh_token: data.refresh_token ?? refreshToken,
-        expires_at: Math.floor(Date.now() / 1000) + data.expires_in,
-      },
-    });
+      const data = await res.json();
 
-    this.accessToken = data.access_token;
-    return this.accessToken!;
+      await prisma.account.updateMany({
+        where: { userId: this.userId, provider: "oura" },
+        data: {
+          access_token: data.access_token,
+          refresh_token: data.refresh_token ?? refreshToken,
+          expires_at: Math.floor(Date.now() / 1000) + data.expires_in,
+        },
+      });
+
+      this.accessToken = data.access_token;
+      return this.accessToken!;
+    })();
+
+    refreshLocks.set(this.userId, promise);
+    try {
+      return await promise;
+    } finally {
+      refreshLocks.delete(this.userId);
+    }
   }
 
-  private async fetchAll<T>(endpoint: string, params: Record<string, string>): Promise<T[]> {
+  private async fetchAll<T>(endpoint: string, params: Record<string, string>, retried = false): Promise<T[]> {
     const token = await this.getToken();
     const results: T[] = [];
     let nextToken: string | undefined;
@@ -91,18 +104,17 @@ export class OuraClient {
 
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
-        next: { revalidate: 0 },
       });
 
       if (res.status === 401) {
-        // Reactive refresh on 401
+        if (retried) throw new Error("Oura token invalid after refresh");
         const account = await prisma.account.findFirst({
           where: { userId: this.userId, provider: "oura" },
         });
         if (!account?.refresh_token) throw new Error("Unauthorized and no refresh token");
         this.accessToken = null;
         await this.refreshToken(account.refresh_token);
-        return this.fetchAll<T>(endpoint, params);
+        return this.fetchAll<T>(endpoint, params, true);
       }
 
       if (!res.ok) throw new Error(`Oura API error: ${res.status} ${endpoint}`);
