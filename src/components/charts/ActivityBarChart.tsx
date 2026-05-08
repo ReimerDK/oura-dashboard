@@ -1,7 +1,6 @@
 "use client";
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { scoreBg } from "@/lib/utils";
 
 interface DataPoint {
   day: string;
