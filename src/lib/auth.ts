@@ -34,6 +34,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             body: params,
           });
           const tokens = await res.json();
+          // Oura returns id_token: null which oauth4webapi rejects — strip it
+          delete tokens.id_token;
           return { tokens };
         },
       },
