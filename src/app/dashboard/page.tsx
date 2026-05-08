@@ -48,6 +48,10 @@ export default async function DashboardOverview() {
   const sleepScores = sleep.map((s) => s.score);
   const activityScores = activity.map((a) => a.score);
 
+  const latestTemp = readiness.findLast((r) => r.temperature_deviation !== undefined);
+  const tempReadiness = readiness.filter((r) => r.temperature_deviation !== undefined);
+  const tempData = tempReadiness.map((r) => r.temperature_deviation!);
+
   const chartData = {
     readiness: readiness.map((r) => ({ day: format(parseISO(r.day), "dd/MM"), value: r.score ?? 0 })),
     sleep: sleep.map((s) => ({ day: format(parseISO(s.day), "dd/MM"), value: s.score ?? 0 })),
@@ -137,6 +141,25 @@ export default async function DashboardOverview() {
           { key: "hrv",       label: o.charts.hrvTitle,       title: o.charts.hrvTitle,       sub: o.charts.hrvSub,       data: chartData.hrv,       color: "#7A5AB5" },
         ]}
       />
+
+      <div className="metric-grid lift-in-4" style={{ gridTemplateColumns: "repeat(2, 1fr)" }}>
+        <ScoreCard
+          title={o.cards.tempDeviation}
+          poetry={o.cards.tempDeviationPoetry}
+          color="#7A5AB5"
+          sparkData={tempData}
+          dateRange={sparkRange(tempReadiness)}
+          href="/dashboard/readiness"
+        >
+          {latestTemp?.temperature_deviation !== undefined && (
+            <div className="card-value">
+              {latestTemp.temperature_deviation > 0 ? "+" : ""}
+              {latestTemp.temperature_deviation.toFixed(2)}
+              <span className="card-unit">°C</span>
+            </div>
+          )}
+        </ScoreCard>
+      </div>
 
       <div style={{ height: 48 }} />
     </div>

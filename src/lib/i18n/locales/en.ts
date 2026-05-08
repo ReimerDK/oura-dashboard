@@ -54,6 +54,8 @@ export const en: Translations = {
       activityPoetry: "movement woven through the hours.",
       spo2: "SpO2",
       spo2Poetry: "oxygen saturation in the blood.",
+      tempDeviation: "Body temperature",
+      tempDeviationPoetry: "deviation from your baseline last night.",
     },
     charts: {
       readinessTitle: "Readiness",

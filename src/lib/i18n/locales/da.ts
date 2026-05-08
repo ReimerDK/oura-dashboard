@@ -53,6 +53,8 @@ export const da = {
       activityPoetry: "bevægelse vævet ind i timerne.",
       spo2: "SpO2",
       spo2Poetry: "iltmætning i blodet.",
+      tempDeviation: "Kropstemperatur",
+      tempDeviationPoetry: "afvigelse fra din baseline i nat.",
     },
     charts: {
       readinessTitle: "Parathed",
