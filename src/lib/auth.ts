@@ -19,6 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       token: "https://api.ouraring.com/oauth/token",
       userinfo: "https://api.ouraring.com/v2/usercollection/personal_info",
+      idToken: false,
       checks: ["none"],
       clientId: process.env.OURA_CLIENT_ID,
       clientSecret: process.env.OURA_CLIENT_SECRET,
