@@ -31,52 +31,79 @@ export default function ReadinessPage() {
   const avgScore = data.length ? Math.round(data.reduce((s, d) => s + (d.score ?? 0), 0) / data.filter((d) => d.score).length) : 0;
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold text-white">Parathed</h1>
+    <div>
+      <div className="dash-head lift-in">
+        <div>
+          <div className="date-label">Parathed</div>
+          <h1 className="greeting">Kroppens <em>kapacitet.</em></h1>
+        </div>
         <PeriodSelector value={preset} onChange={setPreset} />
       </div>
 
       {loading ? (
-        <div className="text-gray-500 text-sm">Henter data…</div>
+        <div style={{ color: "var(--ink-3)", fontFamily: "var(--mono)", fontSize: 13, padding: "40px 0" }}>Henter data…</div>
       ) : (
         <>
-          <ScoreCard title="Gns. paratheds-score" score={avgScore || undefined} />
+          <div className="metric-grid lift-in-2" style={{ gridTemplateColumns: "1fr" }}>
+            <ScoreCard
+              title="Gns. paratheds-score"
+              score={avgScore || undefined}
+              poetry="kroppens parathed til at tage dagen i møde."
+              color="var(--accent)"
+              sparkData={data.map((d) => d.score ?? 0).filter(Boolean)}
+            />
+          </div>
 
-          <div className="bg-gray-900 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Paratheds-score</h2>
+          <div className="chart-card lift-in-3">
+            <div className="chart-toolbar">
+              <div>
+                <h3 className="chart-title">Paratheds-score</h3>
+                <div className="chart-sub">Score over valgt periode</div>
+              </div>
+            </div>
             <TrendLineChart
               data={data.map((d) => ({ day: format(parseISO(d.day), "dd/MM"), value: d.score ?? 0 }))}
-              color="#6366f1"
+              color="var(--accent)"
               domain={[0, 100]}
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-gray-900 rounded-2xl p-5">
-              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">Bidragende faktorer</h2>
-              <p className="text-xs text-gray-500 mb-4">
-                Vælg dag:{" "}
-                <select
-                  className="bg-gray-800 text-gray-200 text-xs rounded px-2 py-1 ml-1"
-                  value={selectedDay?.day ?? ""}
-                  onChange={(e) => setSelectedDay(data.find((d) => d.day === e.target.value) ?? null)}
-                >
-                  {data.map((d) => (
-                    <option key={d.day} value={d.day}>{format(parseISO(d.day), "dd/MM/yyyy")}</option>
-                  ))}
-                </select>
-              </p>
+          <div className="compare-grid lift-in-4">
+            <div className="chart-card" style={{ marginBottom: 0 }}>
+              <div className="chart-toolbar">
+                <div>
+                  <h3 className="chart-title">Bidragende faktorer</h3>
+                  <div className="chart-sub" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    Vælg dag:{" "}
+                    <select
+                      style={{
+                        background: "var(--bg-2)", color: "var(--ink)", border: "0.5px solid var(--line)",
+                        borderRadius: 6, padding: "2px 8px", fontFamily: "var(--mono)", fontSize: 11,
+                      }}
+                      value={selectedDay?.day ?? ""}
+                      onChange={(e) => setSelectedDay(data.find((d) => d.day === e.target.value) ?? null)}
+                    >
+                      {data.map((d) => (
+                        <option key={d.day} value={d.day}>{format(parseISO(d.day), "dd/MM/yyyy")}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
               {selectedDay && <ReadinessRadarChart readiness={selectedDay} />}
             </div>
-
-            <div className="bg-gray-900 rounded-2xl p-5">
-              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Kropstemperatur afvigelse</h2>
+            <div className="chart-card" style={{ marginBottom: 0 }}>
+              <div className="chart-toolbar">
+                <div>
+                  <h3 className="chart-title">Kropstemperatur</h3>
+                  <div className="chart-sub">Afvigelse fra din baseline</div>
+                </div>
+              </div>
               <TrendLineChart
                 data={data
                   .filter((d) => d.temperature_deviation !== undefined)
                   .map((d) => ({ day: format(parseISO(d.day), "dd/MM"), value: parseFloat((d.temperature_deviation ?? 0).toFixed(2)) }))}
-                color="#f97316"
+                color="#A8514E"
                 referenceValue={0}
                 unit="°"
               />
@@ -84,6 +111,7 @@ export default function ReadinessPage() {
           </div>
         </>
       )}
+      <div style={{ height: 48 }} />
     </div>
   );
 }

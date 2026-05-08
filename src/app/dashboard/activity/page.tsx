@@ -30,49 +30,89 @@ export default function ActivityPage() {
   const avgCalories = data.length ? Math.round(data.reduce((s, d) => s + (d.active_calories ?? 0), 0) / data.length) : 0;
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold text-white">Aktivitet</h1>
+    <div>
+      <div className="dash-head lift-in">
+        <div>
+          <div className="date-label">Aktivitet</div>
+          <h1 className="greeting">Bevægelse i <em>hverdagen.</em></h1>
+        </div>
         <PeriodSelector value={preset} onChange={setPreset} />
       </div>
 
       {loading ? (
-        <div className="text-gray-500 text-sm">Henter data…</div>
+        <div style={{ color: "var(--ink-3)", fontFamily: "var(--mono)", fontSize: 13, padding: "40px 0" }}>Henter data…</div>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-4">
-            <ScoreCard title="Gns. aktivitetsscore" score={avgScore || undefined} />
-            <ScoreCard title="Gns. skridt" subtitle={avgSteps.toLocaleString("da")} />
-            <ScoreCard title="Gns. aktive kalorier" subtitle={`${avgCalories} kcal`} />
+          <div className="metric-grid lift-in-2" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+            <ScoreCard
+              title="Gns. aktivitetsscore"
+              score={avgScore || undefined}
+              poetry="bevægelse vævet ind i timerne."
+              color="#B5704A"
+              sparkData={data.map((d) => d.score ?? 0).filter(Boolean)}
+            />
+            <ScoreCard
+              title="Gns. skridt"
+              poetry={`${avgSteps.toLocaleString("da")} skridt per dag.`}
+              color="#5C7A4D"
+              sparkData={data.map((d) => d.steps ?? 0).filter(Boolean)}
+            >
+              <div className="card-value" style={{ fontSize: 36 }}>{avgSteps.toLocaleString("da")}</div>
+            </ScoreCard>
+            <ScoreCard
+              title="Gns. aktive kalorier"
+              poetry="energi brugt i aktiv bevægelse."
+              color="#B5704A"
+              sparkData={data.map((d) => d.active_calories ?? 0).filter(Boolean)}
+            >
+              <div className="card-value" style={{ fontSize: 40 }}>{avgCalories}<span className="card-unit">kcal</span></div>
+            </ScoreCard>
           </div>
 
-          <div className="bg-gray-900 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Skridt per dag</h2>
+          <div className="chart-card lift-in-3">
+            <div className="chart-toolbar">
+              <div>
+                <h3 className="chart-title">Skridt per dag</h3>
+                <div className="chart-sub">Daglige skridt over valgt periode</div>
+              </div>
+            </div>
             <ActivityBarChart
               data={data.map((d) => ({ day: format(parseISO(d.day), "dd/MM"), value: d.steps ?? 0 }))}
-              color="#10b981"
+              color="#5C7A4D"
             />
           </div>
 
-          <div className="bg-gray-900 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Aktive kalorier</h2>
-            <TrendLineChart
-              data={data.map((d) => ({ day: format(parseISO(d.day), "dd/MM"), value: d.active_calories ?? 0 }))}
-              color="#f59e0b"
-              unit=" kcal"
-            />
-          </div>
-
-          <div className="bg-gray-900 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Aktivitetsscore</h2>
-            <TrendLineChart
-              data={data.map((d) => ({ day: format(parseISO(d.day), "dd/MM"), value: d.score ?? 0 }))}
-              color="#6366f1"
-              domain={[0, 100]}
-            />
+          <div className="compare-grid lift-in-4">
+            <div className="chart-card" style={{ marginBottom: 0 }}>
+              <div className="chart-toolbar">
+                <div>
+                  <h3 className="chart-title">Aktive kalorier</h3>
+                  <div className="chart-sub">Dagligt forbrug</div>
+                </div>
+              </div>
+              <TrendLineChart
+                data={data.map((d) => ({ day: format(parseISO(d.day), "dd/MM"), value: d.active_calories ?? 0 }))}
+                color="#B5704A"
+                unit=" kcal"
+              />
+            </div>
+            <div className="chart-card" style={{ marginBottom: 0 }}>
+              <div className="chart-toolbar">
+                <div>
+                  <h3 className="chart-title">Aktivitetsscore</h3>
+                  <div className="chart-sub">Score over periode</div>
+                </div>
+              </div>
+              <TrendLineChart
+                data={data.map((d) => ({ day: format(parseISO(d.day), "dd/MM"), value: d.score ?? 0 }))}
+                color="#B5704A"
+                domain={[0, 100]}
+              />
+            </div>
           </div>
         </>
       )}
+      <div style={{ height: 48 }} />
     </div>
   );
 }

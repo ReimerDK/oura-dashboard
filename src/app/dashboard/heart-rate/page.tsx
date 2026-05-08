@@ -34,56 +34,90 @@ export default function HeartRatePage() {
     : "—";
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold text-white">Puls & HRV</h1>
+    <div>
+      <div className="dash-head lift-in">
+        <div>
+          <div className="date-label">Puls & HRV</div>
+          <h1 className="greeting">Hjertets <em>rytme.</em></h1>
+        </div>
         <PeriodSelector value={preset} onChange={setPreset} />
       </div>
 
       {loading ? (
-        <div className="text-gray-500 text-sm">Henter data…</div>
+        <div style={{ color: "var(--ink-3)", fontFamily: "var(--mono)", fontSize: 13, padding: "40px 0" }}>Henter data…</div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4">
-            <ScoreCard title="Gns. HRV Balance" subtitle={avgHrv ? `${avgHrv}` : "—"} />
-            <ScoreCard title="Gns. SpO2" subtitle={`${avgSpO2}%`} />
+          <div className="metric-grid lift-in-2" style={{ gridTemplateColumns: "repeat(2, 1fr)" }}>
+            <ScoreCard
+              title="Gns. HRV Balance"
+              poetry="den rytmiske give-og-tag mellem hjerteslag."
+              color="#7A5AB5"
+              sparkData={readiness.map((r) => r.contributors?.hrv_balance ?? 0).filter(Boolean)}
+            >
+              {avgHrv > 0 && <div className="card-value">{avgHrv}<span className="card-unit">ms</span></div>}
+            </ScoreCard>
+            <ScoreCard
+              title="Gns. SpO2"
+              poetry="iltmætning i blodet."
+              color="#06b6d4"
+              sparkData={spo2.map((s) => s.spo2_percentage?.average ?? 0).filter(Boolean)}
+            >
+              <div className="card-value">{avgSpO2}<span className="card-unit">%</span></div>
+            </ScoreCard>
           </div>
 
-          <div className="bg-gray-900 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">HRV Balance</h2>
+          <div className="chart-card lift-in-3">
+            <div className="chart-toolbar">
+              <div>
+                <h3 className="chart-title">HRV Balance</h3>
+                <div className="chart-sub">Bidragsværdi over valgt periode</div>
+              </div>
+            </div>
             <TrendLineChart
               data={readiness
                 .filter((r) => r.contributors?.hrv_balance !== undefined)
                 .map((r) => ({ day: format(parseISO(r.day), "dd/MM"), value: r.contributors!.hrv_balance! }))}
-              color="#8b5cf6"
+              color="#7A5AB5"
               domain={[0, 100]}
             />
           </div>
 
-          <div className="bg-gray-900 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Hvilepuls (bidrag)</h2>
-            <TrendLineChart
-              data={readiness
-                .filter((r) => r.contributors?.resting_heart_rate !== undefined)
-                .map((r) => ({ day: format(parseISO(r.day), "dd/MM"), value: r.contributors!.resting_heart_rate! }))}
-              color="#ef4444"
-              domain={[0, 100]}
-            />
-          </div>
-
-          <div className="bg-gray-900 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Iltmætning SpO2 (%)</h2>
-            <TrendLineChart
-              data={spo2
-                .filter((s) => s.spo2_percentage?.average !== undefined)
-                .map((s) => ({ day: format(parseISO(s.day), "dd/MM"), value: s.spo2_percentage!.average! }))}
-              color="#06b6d4"
-              domain={[90, 100]}
-              unit="%"
-            />
+          <div className="compare-grid lift-in-4">
+            <div className="chart-card" style={{ marginBottom: 0 }}>
+              <div className="chart-toolbar">
+                <div>
+                  <h3 className="chart-title">Hvilepuls (bidrag)</h3>
+                  <div className="chart-sub">Bidragsværdi fra hvilepuls</div>
+                </div>
+              </div>
+              <TrendLineChart
+                data={readiness
+                  .filter((r) => r.contributors?.resting_heart_rate !== undefined)
+                  .map((r) => ({ day: format(parseISO(r.day), "dd/MM"), value: r.contributors!.resting_heart_rate! }))}
+                color="#A8514E"
+                domain={[0, 100]}
+              />
+            </div>
+            <div className="chart-card" style={{ marginBottom: 0 }}>
+              <div className="chart-toolbar">
+                <div>
+                  <h3 className="chart-title">Iltmætning SpO2</h3>
+                  <div className="chart-sub">Procent, dagligt gennemsnit</div>
+                </div>
+              </div>
+              <TrendLineChart
+                data={spo2
+                  .filter((s) => s.spo2_percentage?.average !== undefined)
+                  .map((s) => ({ day: format(parseISO(s.day), "dd/MM"), value: s.spo2_percentage!.average! }))}
+                color="#06b6d4"
+                domain={[90, 100]}
+                unit="%"
+              />
+            </div>
           </div>
         </>
       )}
+      <div style={{ height: 48 }} />
     </div>
   );
 }

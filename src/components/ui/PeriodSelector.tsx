@@ -16,16 +16,12 @@ const options: { value: PeriodPreset; label: string }[] = [
 
 export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
   return (
-    <div className="flex gap-2 flex-wrap">
+    <div className="range-group">
       {options.map((opt) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-            value === opt.value
-              ? "bg-indigo-600 text-white"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-          }`}
+          className={value === opt.value ? "active" : ""}
         >
           {opt.label}
         </button>

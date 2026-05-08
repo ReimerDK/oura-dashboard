@@ -74,52 +74,65 @@ export default function ComparePage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold text-white">Sammenlign perioder</h1>
+    <div>
+      <div className="dash-head lift-in">
+        <div>
+          <div className="date-label">Sammenlign</div>
+          <h1 className="greeting">Periode for <em>periode.</em></h1>
+        </div>
         <PeriodSelector value={preset} onChange={setPreset} />
       </div>
 
-      <div className="flex gap-2">
-        {(["sleep", "activity", "readiness"] as Metric[]).map((m) => (
-          <button
-            key={m}
-            onClick={() => setMetric(m)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              metric === m ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-            }`}
-          >
-            {metricLabels[m]}
-          </button>
-        ))}
+      <div className="lift-in-2" style={{ marginBottom: 24 }}>
+        <div className="range-group">
+          {(["sleep", "activity", "readiness"] as Metric[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMetric(m)}
+              className={metric === m ? "active" : ""}
+            >
+              {metricLabels[m]}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
-        <div className="text-gray-500 text-sm">Henter data…</div>
+        <div style={{ color: "var(--ink-3)", fontFamily: "var(--mono)", fontSize: 13, padding: "40px 0" }}>Henter data…</div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-900 rounded-2xl p-5">
-              <p className="text-sm text-gray-400 uppercase tracking-wide font-medium">{labelA} (nu)</p>
-              <p className="text-4xl font-bold text-white tabular-nums mt-2">{currentAvg}</p>
-              <p className={`text-sm font-semibold mt-1 ${deltaColor(currentAvg, priorAvg)}`}>
-                {delta(currentAvg, priorAvg)} ift. forrige periode
-              </p>
+          <div className="compare-grid lift-in-3">
+            <div className="embr-card" style={{ cursor: "default" }}>
+              <div className="card-head">
+                <span className="card-name">{labelA} · nu</span>
+                <span className={`card-delta ${currentAvg >= priorAvg ? "up" : "down"}`}>
+                  {currentAvg >= priorAvg ? "▲ " : "▼ "}{delta(currentAvg, priorAvg)} ift. forrige
+                </span>
+              </div>
+              <div className="card-value">{currentAvg}</div>
+              <div className="card-sub">&ldquo;{metricLabels[metric].toLowerCase()}, aktuel periode.&rdquo;</div>
             </div>
-            <div className="bg-gray-900 rounded-2xl p-5">
-              <p className="text-sm text-gray-400 uppercase tracking-wide font-medium">{labelB} (forrige)</p>
-              <p className="text-4xl font-bold text-gray-400 tabular-nums mt-2">{priorAvg}</p>
+            <div className="embr-card" style={{ cursor: "default" }}>
+              <div className="card-head">
+                <span className="card-name">{labelB} · forrige</span>
+              </div>
+              <div className="card-value" style={{ color: "var(--ink-3)" }}>{priorAvg}</div>
+              <div className="card-sub">&ldquo;{metricLabels[metric].toLowerCase()}, forrige periode.&rdquo;</div>
             </div>
           </div>
 
-          <div className="bg-gray-900 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">
-              {metricLabels[metric]} — periodesammenligning
-            </h2>
+          <div className="chart-card lift-in-4">
+            <div className="chart-toolbar">
+              <div>
+                <h3 className="chart-title">{metricLabels[metric]}</h3>
+                <div className="chart-sub">Periodesammenligning · {labelA} vs. {labelB}</div>
+              </div>
+            </div>
             <ComparisonChart data={chartData} labelA={labelA} labelB={labelB} />
           </div>
         </>
       )}
+      <div style={{ height: 48 }} />
     </div>
   );
 }

@@ -34,55 +34,100 @@ export default function SleepPage() {
   const avgEfficiency = mainPeriods.length ? Math.round(mainPeriods.reduce((s, p) => s + (p.efficiency ?? 0), 0) / mainPeriods.filter((p) => p.efficiency).length) : 0;
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold text-white">Søvn</h1>
+    <div>
+      <div className="dash-head lift-in">
+        <div>
+          <div className="date-label">Søvn</div>
+          <h1 className="greeting">Nattens <em>hvile.</em></h1>
+        </div>
         <PeriodSelector value={preset} onChange={setPreset} />
       </div>
 
       {loading ? (
-        <div className="text-gray-500 text-sm">Henter data…</div>
+        <div style={{ color: "var(--ink-3)", fontFamily: "var(--mono)", fontSize: 13, padding: "40px 0" }}>Henter data…</div>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-4">
-            <ScoreCard title="Gns. søvnscore" score={avgScore || undefined} />
-            <ScoreCard title="Gns. søvnlængde" subtitle={formatDuration(avgDuration)} />
-            <ScoreCard title="Gns. effektivitet" subtitle={avgEfficiency ? `${avgEfficiency}%` : "—"} />
+          <div className="metric-grid lift-in-2" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+            <ScoreCard
+              title="Gns. søvnscore"
+              score={avgScore || undefined}
+              poetry="kvaliteten af nattens søvn, samlet."
+              color="#3F5BAA"
+              sparkData={dailySleep.map((s) => s.score ?? 0).filter(Boolean)}
+            />
+            <ScoreCard
+              title="Gns. søvnlængde"
+              poetry={formatDuration(avgDuration)}
+              color="#3F5BAA"
+              sparkData={mainPeriods.map((p) => (p.total_sleep_duration ?? 0) / 3600).filter(Boolean)}
+            />
+            <ScoreCard
+              title="Gns. effektivitet"
+              poetry={avgEfficiency ? `${avgEfficiency}% søvneffektivitet` : "ikke nok data."}
+              color="#06b6d4"
+              sparkData={mainPeriods.map((p) => p.efficiency ?? 0).filter(Boolean)}
+            >
+              {avgEfficiency > 0 && (
+                <div className="card-value">{avgEfficiency}<span className="card-unit">%</span></div>
+              )}
+            </ScoreCard>
           </div>
 
-          <div className="bg-gray-900 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Søvnscore</h2>
+          <div className="chart-card lift-in-3">
+            <div className="chart-toolbar">
+              <div>
+                <h3 className="chart-title">Søvnscore</h3>
+                <div className="chart-sub">Score over valgt periode</div>
+              </div>
+            </div>
             <TrendLineChart
               data={dailySleep.map((s) => ({ day: format(parseISO(s.day), "dd/MM"), value: s.score ?? 0 }))}
-              color="#6366f1"
+              color="#3F5BAA"
               domain={[0, 100]}
             />
           </div>
 
-          <div className="bg-gray-900 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Søvnstadier per nat</h2>
+          <div className="chart-card lift-in-4">
+            <div className="chart-toolbar">
+              <div>
+                <h3 className="chart-title">Søvnstadier per nat</h3>
+                <div className="chart-sub">Fordeling af dyb, REM og let søvn</div>
+              </div>
+            </div>
             <SleepStagesChart data={mainPeriods} />
           </div>
 
-          <div className="bg-gray-900 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Søvneffektivitet (%)</h2>
-            <TrendLineChart
-              data={mainPeriods.map((s) => ({ day: format(parseISO(s.day), "dd/MM"), value: s.efficiency ?? 0 }))}
-              color="#06b6d4"
-              domain={[50, 100]}
-              unit="%"
-            />
-          </div>
-
-          <div className="bg-gray-900 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Gns. HRV under søvn (ms)</h2>
-            <TrendLineChart
-              data={mainPeriods.map((s) => ({ day: format(parseISO(s.day), "dd/MM"), value: s.average_hrv ?? 0 }))}
-              color="#8b5cf6"
-            />
+          <div className="compare-grid">
+            <div className="chart-card" style={{ marginBottom: 0 }}>
+              <div className="chart-toolbar">
+                <div>
+                  <h3 className="chart-title">Søvneffektivitet</h3>
+                  <div className="chart-sub">Procent af tid i sengen</div>
+                </div>
+              </div>
+              <TrendLineChart
+                data={mainPeriods.map((s) => ({ day: format(parseISO(s.day), "dd/MM"), value: s.efficiency ?? 0 }))}
+                color="#06b6d4"
+                domain={[50, 100]}
+                unit="%"
+              />
+            </div>
+            <div className="chart-card" style={{ marginBottom: 0 }}>
+              <div className="chart-toolbar">
+                <div>
+                  <h3 className="chart-title">HRV under søvn</h3>
+                  <div className="chart-sub">Gennemsnit i ms</div>
+                </div>
+              </div>
+              <TrendLineChart
+                data={mainPeriods.map((s) => ({ day: format(parseISO(s.day), "dd/MM"), value: s.average_hrv ?? 0 }))}
+                color="#7A5AB5"
+              />
+            </div>
           </div>
         </>
       )}
+      <div style={{ height: 48 }} />
     </div>
   );
 }
